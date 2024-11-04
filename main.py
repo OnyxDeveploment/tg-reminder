@@ -3,6 +3,7 @@ import os
 import schedule
 import time
 import threading
+import asyncio
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from telegram import Bot
@@ -27,10 +28,10 @@ logger = logging.getLogger(__name__)
 # Initialize bot
 bot = Bot(token=BOT_TOKEN)
 
-# Function to send the reminder message
-def send_reminder_message():
+# Async function to send the daily group reminder message
+async def send_group_check_message():
     try:
-        bot.send_message(
+        await bot.send_message(
             chat_id=USER_CHAT_ID,
             text="תבדוק כמה קבוצות יש לך"
         )
@@ -38,35 +39,67 @@ def send_reminder_message():
     except Exception as e:
         logger.error(f"Error sending message: {e}")
 
-# Schedule the task to run every 24 Hours
-# schedule.every(10).minutes.do(send_reminder_message)
-schedule.every(24).hours.do(send_reminder_message)
+# Async function to send the weekly WhatsApp call reminder message
+async def send_whatsapp_check_message():
+    try:
+        await bot.send_message(
+            chat_id=USER_CHAT_ID,
+            text="תבדוק כמות שיחות בוואצאפ"
+        )
+        logger.info("Sent 'תבדוק כמות שיחות בוואצאפ' message to group.")
+    except Exception as e:
+        logger.error(f"Error sending message: {e}")
 
-# Function to calculate the remaining time until the next job
-def get_time_until_next_run():
-    next_run = schedule.next_run()
-    if next_run:
-        remaining_time = next_run - datetime.now()
-        return remaining_time if remaining_time.total_seconds() > 0 else timedelta(0)
-    return None
+# Wrapper functions for scheduling
+def schedule_daily_message():
+    asyncio.run(send_group_check_message())
 
-# Run the schedule in a separate thread with countdown display
+def schedule_weekly_message():
+    asyncio.run(send_whatsapp_check_message())
+
+# Schedule the tasks and capture jobs for easy access
+daily_job = schedule.every().day.at("10:00").do(schedule_daily_message)  # Daily message at 10 AM
+weekly_job = schedule.every().sunday.at("10:00").do(schedule_weekly_message)  # Weekly message on Sunday at 10 AM
+
+# Function to get remaining time for each job
+def get_next_run_info():
+    daily_next_run = daily_job.next_run if daily_job else None
+    weekly_next_run = weekly_job.next_run if weekly_job else None
+    
+    daily_remaining = daily_next_run - datetime.now() if daily_next_run else None
+    weekly_remaining = weekly_next_run - datetime.now() if weekly_next_run else None
+
+    return {
+        'daily': (daily_next_run, str(daily_remaining).split('.')[0] if daily_remaining else None),
+        'weekly': (weekly_next_run, str(weekly_remaining).split('.')[0] if weekly_remaining else None)
+    }
+
+# Run the schedule in a separate thread with countdown display for both reminders
 def run_scheduler():
     while True:
         schedule.run_pending()
 
-        # Get the time remaining until the next run
-        remaining_time = get_time_until_next_run()
-        countdown = str(remaining_time).split(".")[0] if remaining_time else "No next run scheduled"
+        # Get remaining time for both daily and weekly reminders
+        next_run_info = get_next_run_info()
         
-        # Display the countdown in the terminal, updating in real time
-        print(f"\rNext reminder in: {countdown}", end="")
+        # Display countdown for both daily and weekly reminders with each on a new line
+        daily_info = (
+            f"Next group reminder at: {next_run_info['daily'][0]} | Countdown: {next_run_info['daily'][1]}"
+            if next_run_info['daily'][0] else "No daily reminder scheduled"
+        )
+        weekly_info = (
+            f"Next WhatsApp reminder at: {next_run_info['weekly'][0]} | Countdown: {next_run_info['weekly'][1]}"
+            if next_run_info['weekly'][0] else "No weekly reminder scheduled"
+        )
+        
+        # Clear the screen and print each reminder on a new line
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print(daily_info)
+        print(weekly_info)
 
         # Update every second
         time.sleep(1)
 
 if __name__ == '__main__':
-    # Send an initial message when the bot starts
-    send_reminder_message()
     # Start the scheduler with countdown display
     run_scheduler()
