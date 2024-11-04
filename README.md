@@ -1,4 +1,4 @@
-pip install python-telegram-bot==13.14
+pip install python-telegram-bot==20.3
 <br>
 pip install python-dotenv
 <br>
