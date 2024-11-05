@@ -39,9 +39,9 @@ async def send_group_check_message():
     try:
         await bot.send_message(
             chat_id=USER_CHAT_ID,
-            text="תבדוק כמה קבוצות יש לך"
+            text="בצע ספירת קבוצות יומית"
         )
-        logger.info("Sent 'תבדוק כמה קבוצות יש לך' message to group.")
+        logger.info("Sent 'בצע ספירת קבוצות יומית' message to group.")
     except Exception as e:
         logger.error(f"Error sending daily message: {e}")
 
@@ -50,9 +50,9 @@ async def send_whatsapp_check_message():
     try:
         await bot.send_message(
             chat_id=USER_CHAT_ID,
-            text="תבדוק כמות שיחות בוואצאפ"
+            text="בצע בדיקת שיחות וואצאפ"
         )
-        logger.info("Sent 'תבדוק כמות שיחות בוואצאפ' message to group.")
+        logger.info("Sent 'בצע בדיקת שיחות וואצאפ' message to group.")
     except Exception as e:
         logger.error(f"Error sending weekly message: {e}")
 
